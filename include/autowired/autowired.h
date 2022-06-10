@@ -1,18 +1,22 @@
 #ifndef AUTO_WIRED_AUTO_WIRED_H
 #define AUTO_WIRED_AUTO_WIRED_H
 
+#include <atomic>
 #include <functional>
 #include <map>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <type_traits>
 #include <vector>
 
 #include "autowired/need_autowired.h"
+#include "autowired/need_init.h"
 
 class AutoWired {
     enum class AutoWiredType {
         NEED_AUTO_WIRED = 1 << 0,
+        NEED_INIT = 1 << 1,
     };
 
     struct node {
@@ -59,6 +63,10 @@ public:
         if constexpr (std::is_base_of_v<NeedAutoWired, T>) {
             need_auto_wired_class_[name] = dynamic_cast<NeedAutoWired*>(t_ptr);
         }
+
+        if constexpr (std::is_base_of_v<NeedInit, T>) {
+            need_init_class_[name] = dynamic_cast<NeedInit*>(t_ptr);
+        }
     }
 
     template <typename T>
@@ -67,6 +75,9 @@ public:
 
         // if target class not present, core dump will be.
         *t_ptr = static_cast<T*>(class_.at(name).instance);
+
+        graph_[name].push_back(current_run_auto_wired_name_);
+        ++degree_[current_run_auto_wired_name_];
     }
 
     template <typename T>
@@ -89,12 +100,72 @@ public:
     }
 
     void AutoWiredAll() {
+        {
+            bool expected = false;
+            if (!has_run_auto_wired_all_.compare_exchange_strong(expected, true)) {
+                return;
+            }
+        }
+
         for (auto& [name, i] : need_auto_wired_class_) {
+            current_run_auto_wired_name_ = name;
             i->AutoWired();
         }
     }
 
+    void InitAll() {
+        {
+            bool expected = false;
+            if (!has_run_init_all_.compare_exchange_strong(expected, true)) {
+                return;
+            }
+        }
+
+        if (has_run_auto_wired_all_ == false) {
+            throw std::runtime_error("AutoWiredAll() must be called before InitAll()");
+        }
+
+        auto [has_loop, topological_order] = getTopologicalOrder();
+        if (has_loop) {
+            throw std::runtime_error("Dependencies has loop, please initialize manually");
+        }
+
+        for (const auto& name : topological_order) {
+            if (need_init_class_.count(name)) {
+                need_init_class_.at(name)->Init();
+            }
+        }
+    }
+
 private:
+    std::pair<bool, std::vector<std::string>> getTopologicalOrder() {
+        std::vector<std::string> order;
+        std::vector<std::string> unordered;
+        for (auto& [name, i] : class_) {
+            if (degree_.at(name) == 0) {
+                unordered.push_back(name);
+            }
+        }
+
+        while (!unordered.empty()) {
+            auto name = unordered.back();
+            unordered.pop_back();
+            order.push_back(name);
+            for (auto& i : graph_.at(name)) {
+                --degree_.at(i);
+                if (degree_.at(i) == 0) {
+                    unordered.push_back(i);
+                }
+            }
+        }
+
+        if (order.size() != class_.size()) {
+            return std::make_pair(true, std::vector<std::string>{});
+        }
+
+        return std::make_pair(false, order);
+    }
+
     template <typename T>
     std::string getClassTypeName(std::string_view custom_name) {
         std::string res = "";
@@ -111,6 +182,10 @@ private:
             type_flag |= static_cast<int>(AutoWiredType::NEED_AUTO_WIRED);
         }
 
+        if (std::is_base_of_v<NeedInit, T>) {
+            type_flag |= static_cast<int>(AutoWiredType::NEED_INIT);
+        }
+
         return type_flag;
     }
 
@@ -121,6 +196,15 @@ private:
 private:
     std::map<std::string, node> class_;
     std::map<std::string, NeedAutoWired*> need_auto_wired_class_;
+    std::map<std::string, NeedInit*> need_init_class_;
+
+    std::atomic<bool> has_run_auto_wired_all_{false};
+    std::atomic<bool> has_run_init_all_{false};
+
+    std::map<std::string, std::vector<std::string>> graph_;
+    std::map<std::string, uint32_t> degree_;
+
+    std::string current_run_auto_wired_name_;
 };
 
 inline AutoWired& DefaultAutoWired() {

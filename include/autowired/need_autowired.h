@@ -4,7 +4,7 @@
 class NeedAutoWired {
 public:
     virtual ~NeedAutoWired() {}
-    virtual void AutoWired() {}
+    virtual void AutoWired() = 0;
 };
 
 #endif  // AUTO_WIRED_NEED_AUTO_WIRED_H
