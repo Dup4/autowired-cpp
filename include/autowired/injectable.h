@@ -4,7 +4,7 @@
 class Injectable {
 public:
     virtual ~Injectable() {}
-    virtual void AutoWired() = 0;
+    virtual void AutoWired() {}
 };
 
 #endif  // AUTO_WIRED_INJECTABLE_H

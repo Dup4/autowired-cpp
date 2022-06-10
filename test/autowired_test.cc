@@ -10,8 +10,6 @@ protected:
 
 class A : public Injectable {
 public:
-    void AutoWired() override {}
-
     int GetValue() {
         return value_;
     }
