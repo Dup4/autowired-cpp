@@ -8,9 +8,6 @@
 #include <type_traits>
 #include <vector>
 
-#include <iostream>
-using namespace std;
-
 #include "autowired/injectable.h"
 
 class AutoWired {
