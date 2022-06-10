@@ -1,7 +1,6 @@
 #ifndef AUTO_WIRED_AUTO_WIRED_H
 #define AUTO_WIRED_AUTO_WIRED_H
 
-#include <_types/_uint32_t.h>
 #include <atomic>
 #include <functional>
 #include <map>
@@ -10,9 +9,6 @@
 #include <string_view>
 #include <type_traits>
 #include <vector>
-
-#include <iostream>
-using namespace std;
 
 #include "autowired/need_autowired.h"
 #include "autowired/need_init.h"
