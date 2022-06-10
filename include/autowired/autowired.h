@@ -47,11 +47,19 @@ public:
         staticAssert<T>();
         auto name = getClassTypeName<T>(custom_name);
 
+        return dynamic_cast<T*>(class_.at(name));
+    }
+
+    template <typename T>
+    T* GetInstanceOrNullPtr(std::string_view custom_name = "") {
+        staticAssert<T>();
+        auto name = getClassTypeName<T>(custom_name);
+
         if (class_.count(name) == 0) {
             return nullptr;
         }
 
-        return dynamic_cast<T*>(class_[name]);
+        return dynamic_cast<T*>(class_.at(name));
     }
 
     void Init() {
