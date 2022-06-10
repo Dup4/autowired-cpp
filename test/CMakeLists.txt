@@ -36,6 +36,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
 add_executable(
     unit_test
     ${PROJECT_SOURCE_DIR}/test/autowired_test.cc
+    # ${PROJECT_SOURCE_DIR}/test/autowired_need_init_test.cc
 )
 
 target_link_libraries(

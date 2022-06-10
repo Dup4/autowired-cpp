@@ -1,6 +1,7 @@
 #ifndef AUTO_WIRED_AUTO_WIRED_H
 #define AUTO_WIRED_AUTO_WIRED_H
 
+#include <_types/_uint32_t.h>
 #include <atomic>
 #include <functional>
 #include <map>
@@ -9,6 +10,9 @@
 #include <string_view>
 #include <type_traits>
 #include <vector>
+
+#include <iostream>
+using namespace std;
 
 #include "autowired/need_autowired.h"
 #include "autowired/need_init.h"
@@ -76,8 +80,10 @@ public:
         // if target class not present, core dump will be.
         *t_ptr = static_cast<T*>(class_.at(name).instance);
 
-        graph_[name].push_back(current_run_auto_wired_name_);
-        ++degree_[current_run_auto_wired_name_];
+        if (current_run_auto_wired_name_ != EXTERNAL_CLASS_NAME) {
+            graph_[name].push_back(std::string(current_run_auto_wired_name_));
+            ++degree_[current_run_auto_wired_name_];
+        }
     }
 
     template <typename T>
@@ -111,6 +117,8 @@ public:
             current_run_auto_wired_name_ = name;
             i->AutoWired();
         }
+
+        current_run_auto_wired_name_ = EXTERNAL_CLASS_NAME;
     }
 
     void InitAll() {
@@ -141,8 +149,9 @@ private:
     std::pair<bool, std::vector<std::string>> getTopologicalOrder() {
         std::vector<std::string> order;
         std::vector<std::string> unordered;
+
         for (auto& [name, i] : class_) {
-            if (degree_.at(name) == 0) {
+            if (degree_.count(name) == 0 || degree_.at(name) == 0) {
                 unordered.push_back(name);
             }
         }
@@ -151,6 +160,11 @@ private:
             auto name = unordered.back();
             unordered.pop_back();
             order.push_back(name);
+
+            if (!graph_.count(name)) {
+                continue;
+            }
+
             for (auto& i : graph_.at(name)) {
                 --degree_.at(i);
                 if (degree_.at(i) == 0) {
@@ -195,6 +209,7 @@ private:
 
 private:
     std::map<std::string, node> class_;
+
     std::map<std::string, NeedAutoWired*> need_auto_wired_class_;
     std::map<std::string, NeedInit*> need_init_class_;
 
@@ -204,7 +219,9 @@ private:
     std::map<std::string, std::vector<std::string>> graph_;
     std::map<std::string, uint32_t> degree_;
 
-    std::string current_run_auto_wired_name_;
+    std::string current_run_auto_wired_name_{EXTERNAL_CLASS_NAME};
+
+    inline static constexpr std::string_view EXTERNAL_CLASS_NAME = "EXTERNAL_CLASS_NAME";
 };
 
 inline AutoWired& DefaultAutoWired() {
