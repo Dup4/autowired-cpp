@@ -22,7 +22,7 @@ include_directories(
 add_library(autowired-cpp INTERFACE)
 target_include_directories(autowired-cpp INTERFACE ${PROJECT_SOURCE_DIR}/include/)
 
-if (starter_cpp_build_tests)
+if (autowired_cpp_build_tests)
 
 enable_testing()
 
