@@ -8,7 +8,7 @@ protected:
     virtual void SetUp() override {}
 };
 
-class A : public Injectable {
+class A {
 public:
     int GetValue() {
         return value_;
