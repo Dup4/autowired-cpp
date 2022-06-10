@@ -127,12 +127,12 @@ private:
     std::map<std::string, Injectable*> injectable_class_;
 };
 
-AutoWired& DefaultAutoWired() {
+inline AutoWired& DefaultAutoWired() {
     static AutoWired auto_wired;
     return auto_wired;
 }
 
-void InitDefaultAutoWired() {
+inline void InitDefaultAutoWired() {
     DefaultAutoWired().Init();
 }
 
