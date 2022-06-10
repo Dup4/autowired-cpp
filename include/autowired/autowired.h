@@ -8,12 +8,11 @@
 #include <type_traits>
 #include <vector>
 
-#include "autowired/injectable.h"
+#include "autowired/need_autowired.h"
 
 class AutoWired {
     enum class AutoWiredType {
-        None = 0,
-        Injectable = 1 << 1,
+        NEED_AUTO_WIRED = 1 << 0,
     };
 
     struct node {
@@ -57,8 +56,8 @@ public:
                 .free = free,
         };
 
-        if constexpr (std::is_base_of_v<Injectable, T>) {
-            injectable_class_[name] = dynamic_cast<Injectable*>(t_ptr);
+        if constexpr (std::is_base_of_v<NeedAutoWired, T>) {
+            need_auto_wired_class_[name] = dynamic_cast<NeedAutoWired*>(t_ptr);
         }
     }
 
@@ -89,8 +88,8 @@ public:
         return static_cast<T*>(class_.at(name).instance);
     }
 
-    void Init() {
-        for (auto& [name, i] : injectable_class_) {
+    void AutoWiredAll() {
+        for (auto& [name, i] : need_auto_wired_class_) {
             i->AutoWired();
         }
     }
@@ -108,8 +107,8 @@ private:
     uint32_t getTypeFlag() {
         uint32_t type_flag = 0;
 
-        if (std::is_base_of_v<Injectable, T>) {
-            type_flag |= static_cast<int>(AutoWiredType::Injectable);
+        if (std::is_base_of_v<NeedAutoWired, T>) {
+            type_flag |= static_cast<int>(AutoWiredType::NEED_AUTO_WIRED);
         }
 
         return type_flag;
@@ -121,16 +120,12 @@ private:
 
 private:
     std::map<std::string, node> class_;
-    std::map<std::string, Injectable*> injectable_class_;
+    std::map<std::string, NeedAutoWired*> need_auto_wired_class_;
 };
 
 inline AutoWired& DefaultAutoWired() {
     static AutoWired auto_wired;
     return auto_wired;
-}
-
-inline void InitDefaultAutoWired() {
-    DefaultAutoWired().Init();
 }
 
 #endif  // AUTO_WIRED_AUTO_WIRED_H

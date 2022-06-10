@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "autowired/autowired.h"
-#include "autowired/injectable.h"
+#include "autowired/need_autowired.h"
 
 class AutoWiredTest : public testing::Test {
 protected:
@@ -18,7 +18,7 @@ private:
     int value_{1};
 };
 
-class B : public Injectable {
+class B : public NeedAutoWired {
 public:
     void AutoWired() override {
         DefaultAutoWired().Wired(&a_);
@@ -32,7 +32,7 @@ private:
     A *a_{nullptr};
 };
 
-class C : public Injectable {
+class C : public NeedAutoWired {
 public:
     void AutoWired() override {
         DefaultAutoWired().Wired(&b_);
@@ -49,7 +49,7 @@ private:
 TEST_F(AutoWiredTest, auto_wired_test) {
     DefaultAutoWired().Register<A>();
     DefaultAutoWired().Register<B>();
-    InitDefaultAutoWired();
+    DefaultAutoWired().AutoWiredAll();
 
     C c;
     c.AutoWired();
