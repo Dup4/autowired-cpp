@@ -57,4 +57,7 @@ TEST_F(AutoWiredTest, auto_wired_test) {
     c.AutoWired();
 
     EXPECT_EQ(1, c.GetValue());
+
+    EXPECT_EQ(1, DefaultAutoWired().GetInstance<A>()->GetValue());
+    EXPECT_EQ(1, DefaultAutoWired().GetInstance<B>()->GetValue());
 }
