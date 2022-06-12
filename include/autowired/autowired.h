@@ -189,11 +189,11 @@ private:
     uint32_t getTypeFlag() {
         uint32_t type_flag = 0;
 
-        if (std::is_base_of_v<NeedAutoWired, T>) {
+        if constexpr (std::is_base_of_v<NeedAutoWired, T>) {
             type_flag |= static_cast<int>(autoWiredType::NEED_AUTO_WIRED);
         }
 
-        if (std::is_base_of_v<NeedInit, T>) {
+        if constexpr (std::is_base_of_v<NeedInit, T>) {
             type_flag |= static_cast<int>(autoWiredType::NEED_INIT);
         }
 
