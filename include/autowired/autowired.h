@@ -14,12 +14,13 @@
 #include "autowired/need_init.h"
 
 class AutoWired {
-    enum class AutoWiredType {
+private:
+    enum class autoWiredType {
         NEED_AUTO_WIRED = 1 << 0,
         NEED_INIT = 1 << 1,
     };
 
-    struct node {
+    struct classNode {
         uint32_t type_flag{0};
         void* instance{nullptr};
         std::function<void()> free{[] {}};
@@ -54,7 +55,7 @@ public:
             delete t_ptr;
         };
 
-        class_[name] = node{
+        class_[name] = classNode{
                 .type_flag = type_flag,
                 .instance = static_cast<void*>(t_ptr),
                 .free = free,
@@ -189,22 +190,22 @@ private:
         uint32_t type_flag = 0;
 
         if (std::is_base_of_v<NeedAutoWired, T>) {
-            type_flag |= static_cast<int>(AutoWiredType::NEED_AUTO_WIRED);
+            type_flag |= static_cast<int>(autoWiredType::NEED_AUTO_WIRED);
         }
 
         if (std::is_base_of_v<NeedInit, T>) {
-            type_flag |= static_cast<int>(AutoWiredType::NEED_INIT);
+            type_flag |= static_cast<int>(autoWiredType::NEED_INIT);
         }
 
         return type_flag;
     }
 
-    bool hasType(uint32_t type_flag, AutoWiredType type) {
+    bool hasType(uint32_t type_flag, autoWiredType type) {
         return (type_flag & static_cast<int>(type)) != 0;
     }
 
 private:
-    std::map<std::string, node> class_;
+    std::map<std::string, classNode> class_;
 
     std::map<std::string, NeedAutoWired*> need_auto_wired_class_;
     std::map<std::string, NeedInit*> need_init_class_;
