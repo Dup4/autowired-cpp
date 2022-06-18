@@ -24,7 +24,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v1
         with:
-          cmake-version: "3.22.x"
+          cmake-version: "latest"
 
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v1
@@ -44,7 +44,7 @@ jobs:
       - name: GCOVR Analysis
         if: contains(matrix.os, 'ubuntu')
         run: |
-          pip install gcovr==5.0
+          pip install gcovr==5.1
           bash -e gcovr.sh
 
       - name: upload coverage artifact
@@ -75,7 +75,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v1
         with:
-          cmake-version: "3.22.x"
+          cmake-version: "latest"
 
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v1
