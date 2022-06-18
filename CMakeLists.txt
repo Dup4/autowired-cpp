@@ -1,8 +1,8 @@
-option(starter_cpp_build_tests "Build all of snapshot's own tests." OFF)
+option(autowired_build_tests "Build all of snapshot's own tests." OFF)
 
 cmake_minimum_required(VERSION 3.14)
 
-project(autowired-cpp VERSION 0.0.0)
+project(autowired VERSION 0.0.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -22,7 +22,7 @@ include_directories(
 add_library(autowired-cpp INTERFACE)
 target_include_directories(autowired-cpp INTERFACE ${PROJECT_SOURCE_DIR}/include/)
 
-if (autowired_cpp_build_tests)
+if (autowired_build_tests)
 
 enable_testing()
 

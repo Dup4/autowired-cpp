@@ -19,7 +19,7 @@ mkdir "${HTML_RESULT_PATH}"
 
 gcovr -r . \
     --branches \
-    --filter=".*/autowired-cpp/.*" \
+    --filter=".*/autowired/.*" \
     --html-details "${HTML_RESULT_PATH}"/index.html \
     --xml-pretty -o "${COVERAGE_FOLDER}"/coverage.xml \
     --gcov-executable="llvm-cov gcov"

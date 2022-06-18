@@ -18,7 +18,7 @@ FetchContent_Declare(
     snapshot
     QUIET
     GIT_REPOSITORY https://github.com/Dup4/snapshot-cpp.git
-    GIT_TAG v0.1.5
+    GIT_TAG v0.1.8
 )
 
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
@@ -36,7 +36,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
 add_executable(
     unit_test
     ${PROJECT_SOURCE_DIR}/test/autowired_test.cc
-    # ${PROJECT_SOURCE_DIR}/test/autowired_need_init_test.cc
 )
 
 target_link_libraries(
