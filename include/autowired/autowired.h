@@ -210,18 +210,24 @@ private:
             node.func_Init = [t_ptr] {
                 t_ptr->Init();
             };
+        } else if (node.options.need_init) {
+            throw std::runtime_error("Class has no Init() function");
         }
 
         if constexpr (internal::has_de_init_v<T>) {
             node.func_DeInit = [t_ptr] {
                 t_ptr->DeInit();
             };
+        } else if (node.options.need_de_init) {
+            throw std::runtime_error("Class has no DeInit() function");
         }
 
         if constexpr (internal::has_auto_wired_v<T>) {
             node.func_AutoWired = [t_ptr] {
                 t_ptr->AutoWired();
             };
+        } else if (node.options.need_auto_wired) {
+            throw std::runtime_error("Class has no AutoWired() function");
         }
 
         class_.emplace(name, std::move(node));
