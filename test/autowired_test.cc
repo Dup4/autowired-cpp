@@ -1,7 +1,6 @@
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
 #include "autowired/autowired.h"
-#include "autowired/need_autowired.h"
 
 class A {
 public:
@@ -13,10 +12,10 @@ private:
     int value_{1};
 };
 
-class B : public NeedAutoWired {
+class B {
 public:
-    void AutoWired() override {
-        DefaultAutoWired().Wired(&a_);
+    void AutoWired() {
+        auto_wired::DefaultAutoWired().Wired(&a_);
     }
 
     int GetValue() {
@@ -27,10 +26,10 @@ private:
     A *a_{nullptr};
 };
 
-class C : public NeedAutoWired {
+class C {
 public:
-    void AutoWired() override {
-        DefaultAutoWired().Wired(&b_);
+    void AutoWired() {
+        auto_wired::DefaultAutoWired().Wired(&b_);
     }
 
     int GetValue() {
@@ -41,9 +40,9 @@ private:
     B *b_{nullptr};
 };
 
-class D : public NeedInit {
+class D {
 public:
-    void Init() override {
+    void Init() {
         value_ = 1;
     }
 
@@ -55,9 +54,9 @@ private:
     int value_;
 };
 
-class E : public NeedAutoWired, public NeedInit {
+class E {
 public:
-    void Init() override {
+    void Init() {
         value_ = d_->GetValue() + 1;
     }
 
@@ -69,17 +68,17 @@ private:
     int value_;
 
 public:
-    void AutoWired() override {
-        DefaultAutoWired().Wired(&d_);
+    void AutoWired() {
+        auto_wired::DefaultAutoWired().Wired(&d_);
     }
 
 private:
     D *d_{nullptr};
 };
 
-class F : public NeedAutoWired, public NeedInit {
+class F {
 public:
-    void Init() override {
+    void Init() {
         value_ = e_->GetValue() + 1;
     }
 
@@ -91,8 +90,8 @@ private:
     int value_;
 
 public:
-    void AutoWired() override {
-        DefaultAutoWired().Wired(&e_);
+    void AutoWired() {
+        auto_wired::DefaultAutoWired().Wired(&e_);
     }
 
 private:
@@ -102,13 +101,15 @@ private:
 class AutoWiredTest : public testing::Test {
 protected:
     virtual void SetUp() override {
-        DefaultAutoWired().Register<A>();
-        DefaultAutoWired().Register<B>();
-        DefaultAutoWired().Register<D>();
-        DefaultAutoWired().Register<E>();
-        DefaultAutoWired().Register<F>();
-        DefaultAutoWired().AutoWiredAll();
-        DefaultAutoWired().InitAll();
+        auto_wired::DefaultAutoWired().Register<A>();
+        auto_wired::DefaultAutoWired().Register<B>(auto_wired::AutoWired::RegisterOptions::WithNeedAutoWired());
+        auto_wired::DefaultAutoWired().Register<D>(auto_wired::AutoWired::RegisterOptions::WithNeedInit());
+        auto_wired::DefaultAutoWired().Register<E>(auto_wired::AutoWired::RegisterOptions::WithNeedAutoWired(),
+                auto_wired::AutoWired::RegisterOptions::WithNeedInit());
+        auto_wired::DefaultAutoWired().Register<F>(auto_wired::AutoWired::RegisterOptions::WithNeedAutoWired(),
+                auto_wired::AutoWired::RegisterOptions::WithNeedInit());
+        auto_wired::DefaultAutoWired().AutoWiredAll();
+        auto_wired::DefaultAutoWired().InitAll();
     }
 };
 
@@ -118,13 +119,13 @@ TEST_F(AutoWiredTest, auto_wired_test) {
 
     EXPECT_EQ(1, c.GetValue());
 
-    EXPECT_EQ(1, DefaultAutoWired().GetInstance<A>()->GetValue());
-    EXPECT_EQ(1, DefaultAutoWired().GetInstance<B>()->GetValue());
-    EXPECT_EQ(nullptr, DefaultAutoWired().GetInstanceOrNullPtr<C>());
+    EXPECT_EQ(1, auto_wired::DefaultAutoWired().GetInstance<A>()->GetValue());
+    EXPECT_EQ(1, auto_wired::DefaultAutoWired().GetInstance<B>()->GetValue());
+    EXPECT_EQ(nullptr, auto_wired::DefaultAutoWired().GetInstanceOrNullPtr<C>());
 }
 
 TEST_F(AutoWiredTest, need_init_test) {
-    EXPECT_EQ(1, DefaultAutoWired().GetInstance<D>()->GetValue());
-    EXPECT_EQ(2, DefaultAutoWired().GetInstance<E>()->GetValue());
-    EXPECT_EQ(3, DefaultAutoWired().GetInstance<F>()->GetValue());
+    EXPECT_EQ(1, auto_wired::DefaultAutoWired().GetInstance<D>()->GetValue());
+    EXPECT_EQ(2, auto_wired::DefaultAutoWired().GetInstance<E>()->GetValue());
+    EXPECT_EQ(3, auto_wired::DefaultAutoWired().GetInstance<F>()->GetValue());
 }

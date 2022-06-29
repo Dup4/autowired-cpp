@@ -10,64 +10,83 @@
 #include <type_traits>
 #include <vector>
 
-#include "autowired/need_autowired.h"
-#include "autowired/need_init.h"
+#include "./types_check/has_auto_wired.h"
+#include "./types_check/has_de_init.h"
+#include "./types_check/has_init.h"
+
+namespace auto_wired {
 
 class AutoWired {
-private:
-    enum class autoWiredType {
-        NEED_AUTO_WIRED = 1 << 0,
-        NEED_INIT = 1 << 1,
+public:
+    struct RegisterOptions {
+        std::string custom_name{""};
+        bool need_init{false};
+        bool need_de_init{false};
+        bool need_auto_wired{false};
+
+    public:
+        static auto WithCustomName(const std::string& custom_name) {
+            return [custom_name](RegisterOptions& options) {
+                options.custom_name = custom_name;
+            };
+        }
+
+        static auto WithNeedInit(bool need_init = true) {
+            return [need_init](RegisterOptions& options) {
+                options.need_init = need_init;
+            };
+        }
+
+        static auto WithNeedDeInit(bool need_de_init = true) {
+            return [need_de_init](RegisterOptions& options) {
+                options.need_de_init = need_de_init;
+            };
+        }
+
+        static auto WithNeedAutoWired(bool need_auto_wired = true) {
+            return [need_auto_wired](RegisterOptions& options) {
+                options.need_auto_wired = need_auto_wired;
+            };
+        }
+
+        template <typename... Opt>
+        static auto CreateRegisterOptions(Opt&&... opts) {
+            RegisterOptions options;
+            (std::forward<Opt>(opts)(options), ...);
+
+            return options;
+        }
     };
 
+private:
     struct classNode {
-        uint32_t type_flag{0};
         void* instance{nullptr};
-        std::function<void()> free{[] {}};
+        RegisterOptions options;
+        std::function<void()> func_Free{[] {}};
+        std::function<void()> func_Init{[] {}};
+        std::function<void()> func_DeInit{[] {}};
+        std::function<void()> func_AutoWired{[] {}};
     };
+
+    inline const static RegisterOptions default_register_options{"", false, false, false};
+    using RegisterOptionsSetFunction = std::function<void(RegisterOptions&)>;
 
 public:
     AutoWired() = default;
     ~AutoWired() {
         for (auto& [name, i] : class_) {
-            i.free();
+            i.func_Free();
         }
     }
 
-    template <typename T>
-    void Register(std::string_view custom_name = "") {
-        Register<T>(nullptr, custom_name);
+    template <typename T, typename... Opt>
+    void Register(Opt&&... opts) {
+        registerImpl<T>(nullptr, RegisterOptions::CreateRegisterOptions(std::forward<Opt>(opts)...));
     }
 
-    template <typename T>
-    void Register(T* t_ptr, std::string_view custom_name = "") {
-        auto name = getClassTypeName<T>(custom_name);
-        if (class_.count(name)) {
-            return;
-        }
-
-        if (!t_ptr) {
-            t_ptr = new T();
-        }
-
-        auto type_flag = getTypeFlag<T>();
-        auto free = [t_ptr] {
-            delete t_ptr;
-        };
-
-        class_[name] = classNode{
-                .type_flag = type_flag,
-                .instance = static_cast<void*>(t_ptr),
-                .free = free,
-        };
-
-        if constexpr (std::is_base_of_v<NeedAutoWired, T>) {
-            need_auto_wired_class_[name] = dynamic_cast<NeedAutoWired*>(t_ptr);
-        }
-
-        if constexpr (std::is_base_of_v<NeedInit, T>) {
-            need_init_class_[name] = dynamic_cast<NeedInit*>(t_ptr);
-        }
+    template <typename T, typename... Opt>
+    void Register(T* t_ptr, Opt&&... opts) {
+        registerImpl(t_ptr, RegisterOptions::CreateRegisterOptions(std::forward<Opt>(opts)...));
     }
 
     template <typename T>
@@ -110,9 +129,11 @@ public:
             }
         }
 
-        for (auto& [name, i] : need_auto_wired_class_) {
-            current_run_auto_wired_name_ = name;
-            i->AutoWired();
+        for (auto& [name, i] : class_) {
+            if (i.options.need_auto_wired) {
+                current_run_auto_wired_name_ = name;
+                i.func_AutoWired();
+            }
         }
 
         current_run_auto_wired_name_ = EXTERNAL_CLASS_NAME;
@@ -135,14 +156,77 @@ public:
             throw std::runtime_error("Dependencies has loop, please initialize manually");
         }
 
-        for (const auto& name : topological_order) {
-            if (need_init_class_.count(name)) {
-                need_init_class_.at(name)->Init();
+        for (auto& name : topological_order) {
+            if (class_.at(name).options.need_init) {
+                class_.at(name).func_Init();
+            }
+        }
+    }
+
+    void DeInitAll() {
+        {
+            bool expected = false;
+            if (!has_run_de_init_all_.compare_exchange_strong(expected, true)) {
+                return;
+            }
+        }
+
+        if (has_run_auto_wired_all_ == false) {
+            throw std::runtime_error("AutoWiredAll() must be called before DeInitAll()");
+        }
+
+        auto [has_loop, topological_order] = getTopologicalOrder();
+        if (has_loop) {
+            throw std::runtime_error("Dependencies has loop, please deinit manually");
+        }
+
+        for (auto& name : topological_order) {
+            if (class_.at(name).options.need_de_init) {
+                class_.at(name).func_DeInit();
             }
         }
     }
 
 private:
+    template <typename T>
+    void registerImpl(T* t_ptr, RegisterOptions options) {
+        auto name = getClassTypeName<T>(options.custom_name);
+        if (class_.count(name)) {
+            return;
+        }
+
+        if (!t_ptr) {
+            t_ptr = new T();
+        }
+
+        classNode node;
+        node.instance = static_cast<void*>(t_ptr);
+        node.options = std::move(options);
+        node.func_Free = [t_ptr] {
+            delete t_ptr;
+        };
+
+        if constexpr (internal::has_init_v<T>) {
+            node.func_Init = [t_ptr] {
+                t_ptr->Init();
+            };
+        }
+
+        if constexpr (internal::has_de_init_v<T>) {
+            node.func_DeInit = [t_ptr] {
+                t_ptr->DeInit();
+            };
+        }
+
+        if constexpr (internal::has_auto_wired_v<T>) {
+            node.func_AutoWired = [t_ptr] {
+                t_ptr->AutoWired();
+            };
+        }
+
+        class_.emplace(name, std::move(node));
+    }
+
     std::pair<bool, std::vector<std::string>> getTopologicalOrder() {
         std::vector<std::string> order;
         std::vector<std::string> unordered;
@@ -185,33 +269,12 @@ private:
         return res;
     }
 
-    template <typename T>
-    uint32_t getTypeFlag() {
-        uint32_t type_flag = 0;
-
-        if constexpr (std::is_base_of_v<NeedAutoWired, T>) {
-            type_flag |= static_cast<int>(autoWiredType::NEED_AUTO_WIRED);
-        }
-
-        if constexpr (std::is_base_of_v<NeedInit, T>) {
-            type_flag |= static_cast<int>(autoWiredType::NEED_INIT);
-        }
-
-        return type_flag;
-    }
-
-    bool hasType(uint32_t type_flag, autoWiredType type) {
-        return (type_flag & static_cast<int>(type)) != 0;
-    }
-
 private:
     std::map<std::string, classNode> class_;
 
-    std::map<std::string, NeedAutoWired*> need_auto_wired_class_;
-    std::map<std::string, NeedInit*> need_init_class_;
-
     std::atomic<bool> has_run_auto_wired_all_{false};
     std::atomic<bool> has_run_init_all_{false};
+    std::atomic<bool> has_run_de_init_all_{false};
 
     std::map<std::string, std::vector<std::string>> graph_;
     std::map<std::string, uint32_t> degree_;
@@ -225,5 +288,7 @@ inline AutoWired& DefaultAutoWired() {
     static AutoWired auto_wired;
     return auto_wired;
 }
+
+}  // namespace auto_wired
 
 #endif  // AUTO_WIRED_AUTO_WIRED_H
