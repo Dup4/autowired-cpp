@@ -98,6 +98,10 @@ private:
     E *e_{nullptr};
 };
 
+class G {
+public:
+};
+
 class AutoWiredTest : public testing::Test {
 protected:
     virtual void SetUp() override {
@@ -128,4 +132,12 @@ TEST_F(AutoWiredTest, need_init_test) {
     EXPECT_EQ(1, auto_wired::DefaultAutoWired().GetInstance<D>()->GetValue());
     EXPECT_EQ(2, auto_wired::DefaultAutoWired().GetInstance<E>()->GetValue());
     EXPECT_EQ(3, auto_wired::DefaultAutoWired().GetInstance<F>()->GetValue());
+}
+
+TEST_F(AutoWiredTest, function_check_test) {
+    auto_wired::AutoWired a;
+
+    EXPECT_THROW(a.Register<G>(auto_wired::AutoWired::RegisterOptions::WithNeedAutoWired()), std::runtime_error);
+    EXPECT_THROW(a.Register<G>(auto_wired::AutoWired::RegisterOptions::WithNeedInit()), std::runtime_error);
+    EXPECT_THROW(a.Register<G>(auto_wired::AutoWired::RegisterOptions::WithNeedDeInit()), std::runtime_error);
 }
