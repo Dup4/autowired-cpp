@@ -24,6 +24,7 @@
         }
     },
     "cSpell.words": [
+        "autowired",
         "cmake",
         "codecov",
         "declval",
