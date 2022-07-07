@@ -109,9 +109,9 @@ protected:
         auto_wired::DefaultAutoWired().Register<B>(auto_wired::AutoWired::RegisterOptions::WithNeedAutoWired());
         auto_wired::DefaultAutoWired().Register<D>(auto_wired::AutoWired::RegisterOptions::WithNeedInit());
         auto_wired::DefaultAutoWired().Register<E>(auto_wired::AutoWired::RegisterOptions::WithNeedAutoWired(),
-                auto_wired::AutoWired::RegisterOptions::WithNeedInit());
+                                                   auto_wired::AutoWired::RegisterOptions::WithNeedInit());
         auto_wired::DefaultAutoWired().Register<F>(auto_wired::AutoWired::RegisterOptions::WithNeedAutoWired(),
-                auto_wired::AutoWired::RegisterOptions::WithNeedInit());
+                                                   auto_wired::AutoWired::RegisterOptions::WithNeedInit());
         auto_wired::DefaultAutoWired().AutoWiredAll();
         auto_wired::DefaultAutoWired().InitAll();
     }
